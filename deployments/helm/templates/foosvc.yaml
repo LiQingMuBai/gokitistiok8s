@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.foosvc.name }}
+spec:
+  replicas: {{ .Values.foosvc.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.foosvc.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.foosvc.name }}
+    spec:
+      containers:
+        - name: {{ .Values.foosvc.name }}
+          env:
+                  {{- range $key, $value := .Values.foosvc.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+                {{- end }}
+          image: {{ .Values.foosvc.image }}
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.foosvc.name }}
+spec:
+  selector:
+    app: {{ .Values.foosvc.name }}
+  ports:
+    - port: 80
+      name: http
+      targetPort: {{ .Values.foosvc.env.QS_FOOSVC_HTTP_PORT }}
+    - port: 8000
+      name: grpc
+      targetPort: {{ .Values.foosvc.env.QS_FOOSVC_GRPC_PORT }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{ .Values.foosvc.name }}
+spec:
+  hosts:
+    - {{ .Values.foosvc.name }}
+  http:
+    - route:
+        - destination:
+            host: {{ .Values.foosvc.name }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ .Values.foosvc.name }}
+spec:
+  host: {{ .Values.foosvc.name }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    loadBalancer:
+      simple: RANDOM
+    connectionPool:
+      tcp:
+        maxConnections: 1
+      http:
+        http1MaxPendingRequests: 1
+        maxRequestsPerConnection: 1
+    outlierDetection:
+      consecutiveErrors: 1
+      interval: 1s
+      baseEjectionTime: 3m
+      maxEjectionPercent: 100

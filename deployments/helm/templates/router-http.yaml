@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.router.name }}
+  labels:
+    app: {{ .Values.router.name }}
+spec:
+  replicas: {{ .Values.router.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.router.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.router.name }}
+    spec:
+      containers:
+        - name: {{ .Values.router.name }}
+          env:
+          {{- range $key, $value := .Values.router.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+          {{- end }}
+          image: {{ .Values.router.image }}
+      restartPolicy: Always
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.router.name }}
+spec:
+  selector:
+    app: {{ .Values.router.name }}
+  ports:
+    - port: 80
+      name: http
+      targetPort: {{ .Values.router.env.QS_ROUTER_HTTP_PORT }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{ .Values.router.name }}
+spec:
+  hosts:
+    - {{ .Values.router.name }}
+  http:
+    - route:
+        - destination:
+            host: {{ .Values.router.name }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ .Values.router.name }}
+spec:
+  host: {{ .Values.router.name }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    loadBalancer:
+      simple: RANDOM

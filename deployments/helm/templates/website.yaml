@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.website.name }}
+  labels:
+    app: {{ .Values.website.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.website.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.website.name }}
+    spec:
+      containers:
+        - name: {{ .Values.website.name }}
+          image: {{ .Values.website.image }}
+          ports:
+            - containerPort: 80
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ .Values.website.name }}
+spec:
+  selector:
+    app: {{ .Values.website.name }}
+  ports:
+    - port: 80
+      name: http
+      targetPort: 80
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{ .Values.website.name }}
+spec:
+  hosts:
+    - {{ .Values.website.name }}
+  http:
+    - route:
+        - destination:
+            host: {{ .Values.website.name }}
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: DestinationRule
+metadata:
+  name: {{ .Values.website.name }}
+spec:
+  host: {{ .Values.website.name }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+    loadBalancer:
+      simple: RANDOM

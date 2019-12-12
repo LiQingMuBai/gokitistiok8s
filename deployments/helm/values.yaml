@@ -1,0 +1,37 @@
+addsvc:
+  name: addsvc
+  image: cage1016/gokitistiok8s-addsvc
+  replicas: 1
+  env:
+    QS_ADDSVC_GRPC_PORT: "8021"
+    QS_ADDSVC_HTTP_PORT: "8020"
+    QS_ADDSVC_LOG_LEVEL: info
+    QS_ZIPKIN_V2_URL: http://zipkin.istio-system.svc.cluster.local:9411/api/v2/spans
+
+foosvc:
+  name: foosvc
+  image: cage1016/gokitistiok8s-foosvc
+  replicas: 1
+  env:
+    QS_ADDSVC_URL: "addsvc:8000"
+    QS_FOOSVC_GRPC_PORT: "7021"
+    QS_FOOSVC_HTTP_PORT: "7020"
+    QS_FOOSVC_LOG_LEVEL: info
+    QS_ZIPKIN_V2_URL: http://zipkin.istio-system.svc.cluster.local:9411/api/v2/spans
+
+website:
+  name: website
+  image: cage1016/gokitistiok8s-website
+  replicas: 1
+
+router:
+  name: router
+  image: cage1016/gokitistiok8s-router
+  replicas: 1
+  env:
+    QS_ADDSVC_URL: "addsvc:8000"
+    QS_FOOSVC_URL: "foosvc:8000"
+    QS_ROUTER_HTTP_PORT: "8000"
+    QS_ROUTER_LOG_LEVEL: info
+    QS_ROUTER_SECRET: gokitistiok8s-secret
+    QS_ZIPKIN_V2_URL: http://zipkin.istio-system.svc.cluster.local:9411/api/v2/spans

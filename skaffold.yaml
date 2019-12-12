@@ -1,0 +1,49 @@
+apiVersion: skaffold/v1
+kind: Config
+build:
+  artifacts:
+    - image: cage1016/gokitistiok8s-website
+      context: pkg/website
+      custom:
+        buildCommand: make build
+        dependencies:
+          paths:
+            - default.conf
+            - Dockerfile
+    - image: cage1016/gokitistiok8s-addsvc
+      custom:
+        buildCommand: make dev_docker_addsvc
+        dependencies:
+          paths:
+            - cmd/addsvc/main.go
+            - pkg/addsvc
+    - image: cage1016/gokitistiok8s-router
+      custom:
+        buildCommand: make dev_docker_router
+        dependencies:
+          paths:
+            - cmd/router/main.go
+            - pkg/router
+            - pkg/addsvc
+            - pkg/foosvc
+            - pkg/shared_package
+    - image: cage1016/gokitistiok8s-foosvc
+      custom:
+        buildCommand: make dev_docker_foosvc
+        dependencies:
+          paths:
+            - cmd/foosvc/main.go
+            - pkg/foosvc
+  tagPolicy:
+    sha256: {}
+  local: {}
+deploy:
+  helm:
+    releases:
+      - name: gokitistiok8s
+        chartPath: ./deployments/helm
+        values:
+          addsvc.image: cage1016/gokitistiok8s-addsvc
+          foosvc.image: cage1016/gokitistiok8s-foosvc
+          router.image: cage1016/gokitistiok8s-router
+          website.image: cage1016/gokitistiok8s-website
